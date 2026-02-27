@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhance Devocalized</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1>Enhance Devocalized</h1>
+        <p class="subtitle">Compensazione multiband intelligente per tracce karaoke</p>
+    </header>
+
+    <main>
+        <!-- Step 1: Upload & Analyze -->
+        <section id="upload-section" class="card">
+            <h2>1. Carica tracce e analizza</h2>
+
+            <div class="mode-selector">
+                <label class="mode-option">
+                    <input type="radio" name="analysis-mode" value="mix" checked>
+                    <span>Mix Originale</span>
+                    <span class="mode-desc">Confronta il mix originale con la strumentale per compensazione esatta</span>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="analysis-mode" value="vocal">
+                    <span>Traccia Vocale</span>
+                    <span class="mode-desc">Usa la voce isolata per stimare dove compensare</span>
+                </label>
+            </div>
+
+            <div class="upload-grid">
+                <div class="upload-box">
+                    <label for="vocal-file" id="reference-label">Mix Originale</label>
+                    <input type="file" id="vocal-file" accept="audio/*">
+                    <span class="file-hint" id="reference-hint">Il mix originale completo (voce + strumenti)</span>
+                </div>
+                <div class="upload-box">
+                    <label for="instrumental-file">Traccia Strumentale (devocalizzata)</label>
+                    <input type="file" id="instrumental-file" accept="audio/*">
+                    <span class="file-hint">La traccia karaoke da cui compensare i buchi</span>
+                </div>
+            </div>
+
+            <div class="analysis-params">
+                <h3>Parametri analisi</h3>
+                <div class="param-row" id="sensitivity-row">
+                    <label for="sensitivity">Sensitivity <span id="sensitivity-val">9</span></label>
+                    <input type="range" id="sensitivity" min="1" max="10" value="9" step="1">
+                    <span class="param-help" id="sensitivity-help">Ultra sensibile: rileva anche residui minimi</span>
+                </div>
+                <div class="param-row">
+                    <label for="band-count">Bande <span id="band-count-val">24</span></label>
+                    <input type="range" id="band-count" min="6" max="32" value="24" step="1">
+                    <span class="param-help" id="band-count-help">24 bande: alta risoluzione</span>
+                </div>
+            </div>
+
+            <button id="analyze-btn" class="btn btn-primary" disabled>Analizza</button>
+
+            <div id="analyze-progress-container" class="hidden">
+                <div class="progress-bar">
+                    <div id="analyze-progress-fill" class="progress-fill"></div>
+                </div>
+                <span id="analyze-progress-text">0%</span>
+            </div>
+            <div id="analyze-status" class="status"></div>
+        </section>
+
+        <!-- Step 2: Waveform & Heatmap -->
+        <section id="waveform-section" class="card hidden">
+            <h2>2. Analisi multiband</h2>
+
+            <div class="waveform-container">
+                <div class="waveform-label" id="waveform-ref-label">Mix Originale</div>
+                <div id="waveform-vocal" class="waveform"></div>
+            </div>
+
+            <div class="heatmap-container">
+                <div class="waveform-label" id="heatmap-label">Delta energia mix vs strumentale <span class="waveform-hint">(pi&ugrave; caldo = pi&ugrave; compensazione)</span></div>
+                <canvas id="heatmap-canvas" class="heatmap-canvas"></canvas>
+                <div class="heatmap-legend">
+                    <span class="heatmap-legend-label">0%</span>
+                    <div class="heatmap-gradient"></div>
+                    <span class="heatmap-legend-label">100%</span>
+                </div>
+                <div class="heatmap-bands-labels" id="heatmap-bands-labels"></div>
+            </div>
+
+            <div class="waveform-container">
+                <div class="waveform-label">Strumentale</div>
+                <div id="waveform-instrumental" class="waveform"></div>
+            </div>
+
+            <div class="segment-stats" id="segment-stats"></div>
+        </section>
+
+        <!-- Step 3: Processing -->
+        <section id="process-section" class="card hidden">
+            <h2>3. Processing</h2>
+
+            <div class="param-grid">
+                <div class="param-row" id="eq-row">
+                    <label for="eq-level" id="eq-label">Compensazione <span id="eq-val">100%</span></label>
+                    <input type="range" id="eq-level" min="0" max="10" value="10" step="1">
+                    <span class="param-help" id="eq-help">100%: la strumentale raggiunge i livelli del mix originale</span>
+                </div>
+                <div class="param-row checkbox-row">
+                    <label><input type="checkbox" id="stereo-widen"> Stereo Widen</label>
+                    <span class="param-help">Allarga l'immagine stereo dove la devocalizzazione l'ha ristretta</span>
+                </div>
+                <div class="param-row">
+                    <label for="normalization">Normalizzazione</label>
+                    <select id="normalization">
+                        <option value="none">Nessuna</option>
+                        <option value="peak">Peak (porta il picco a 0dB)</option>
+                        <option value="loudness">Loudness (-16 LUFS)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button id="process-btn" class="btn btn-primary">Processa</button>
+
+            <div id="progress-container" class="hidden">
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <span id="progress-text">0%</span>
+            </div>
+        </section>
+
+        <!-- Step 4: Result -->
+        <section id="result-section" class="card hidden">
+            <h2>4. Risultato</h2>
+
+            <div class="ab-compare">
+                <div class="ab-track">
+                    <h3>Originale</h3>
+                    <audio id="audio-original" controls></audio>
+                </div>
+                <div class="ab-track">
+                    <h3>Processato</h3>
+                    <audio id="audio-processed" controls></audio>
+                </div>
+            </div>
+
+            <button id="download-btn" class="btn btn-primary">Scarica risultato</button>
+        </section>
+    </main>
+
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.esm.js" type="module"></script>
+    <script src="/static/app.js" type="module"></script>
+</body>
+</html>

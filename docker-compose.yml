@@ -1,0 +1,13 @@
+services:
+  enhance-devocalized:
+    build: .
+    ports:
+      - "8800:8000"
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      - UPLOAD_DIR=/app/uploads
+    deploy:
+      resources:
+        limits:
+          memory: 4g

@@ -86,11 +86,11 @@ Apri `http://localhost:8800` (Docker) o `http://localhost:8000` (dev).
 ```bash
 # Modalità Mix — usa il mix originale come riferimento (consigliata)
 python enhance-cli.py mix.flac strumentale.mp3
+python enhance-cli.py -b 32 -e 3 mix.flac strumentale.mp3
 
 # Modalità Vocale — usa la traccia vocale isolata
 python enhance-cli.py --mode vocal voce.flac strumentale.mp3
 python enhance-cli.py --mode vocal -b 32 -s 10 -e 10 voce.flac strumentale.mp3
-python enhance-cli.py --mode mix -b 32 -e 3 mix.flac strumentale.mp3
 
 # Modalità guidata interattiva (wizard)
 python enhance-cli.py --wizard

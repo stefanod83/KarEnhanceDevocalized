@@ -500,7 +500,8 @@ function showResult(result) {
     const processedAudio = document.getElementById('audio-processed');
 
     originalAudio.src = `/api/audio/${sessionId}/instrumental`;
-    processedAudio.src = `/api/download/${sessionId}/${result.output_filename}`;
+    processedAudio.src = `/api/download/${sessionId}/${result.output_filename}?t=${Date.now()}`;
+    processedAudio.load();
 
     downloadBtn.onclick = () => {
         const a = document.createElement('a');

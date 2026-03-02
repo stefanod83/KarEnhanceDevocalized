@@ -294,7 +294,11 @@ async def download(session_id: str, filename: str):
     if not os.path.isfile(filepath):
         raise HTTPException(404, "File not found")
 
-    return FileResponse(filepath, filename=safe_filename)
+    return FileResponse(
+        filepath,
+        filename=safe_filename,
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/api/audio/{session_id}/{which}")

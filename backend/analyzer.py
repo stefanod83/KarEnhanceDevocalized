@@ -220,7 +220,13 @@ def analyze_mix_reference(
     bin_groups = map_bins_to_bands(N_FFT, sr, band_edges)
     band_defs = build_band_definitions(band_edges)
 
-    # Per-band gain ratio: RMS_mix / RMS_instrumental
+    # Per-band gain ratio with adaptive gain cap.
+    # Each band uses its own median instrumental energy as reference.
+    # Where the instrumental is close to its typical level, full boost is allowed.
+    # Where it's far below (near-silent), boost is limited to avoid amplifying
+    # vocal residues or noise.
+    ADAPTIVE_RANGE_DB = 40.0  # dB range over which gain ramps from 1.0 to MAX_GAIN
+
     n_frames = mag_mix.shape[1]
     gain_ratio_matrix = np.ones((n_bands, n_frames), dtype=np.float32)
 
@@ -237,8 +243,24 @@ def analyze_mix_reference(
         # Gain ratio: how much to boost instrumental to match mix
         ratio = mix_rms / (inst_rms + eps)
 
-        # Only boost (never attenuate), cap at MAX_GAIN
-        ratio = np.clip(ratio, 1.0, MAX_GAIN)
+        # --- Adaptive gain cap per band ---
+        # Compute this band's reference level: median of non-silent frames (in dB)
+        inst_db = 20.0 * np.log10(inst_rms + eps)
+        active_mask = inst_rms > 1e-6  # exclude pure silence
+        if np.any(active_mask):
+            band_ref_db = float(np.median(inst_db[active_mask]))
+        else:
+            band_ref_db = -80.0
+
+        # Adaptive ceiling: ramps from 1.0 (when inst is ADAPTIVE_RANGE_DB below ref)
+        # to MAX_GAIN (when inst is at or above its band reference level)
+        gain_ceiling = 1.0 + (MAX_GAIN - 1.0) * np.clip(
+            (inst_db - (band_ref_db - ADAPTIVE_RANGE_DB)) / ADAPTIVE_RANGE_DB,
+            0.0, 1.0,
+        )
+
+        # Apply both caps: never attenuate, never exceed adaptive ceiling
+        ratio = np.clip(ratio, 1.0, gain_ceiling)
 
         gain_ratio_matrix[b, :] = ratio
 
